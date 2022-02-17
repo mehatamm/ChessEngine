@@ -2,20 +2,13 @@
 #include <string>
 #include <vector>
 using std::string;
-class Piece{
-	public:
-	char color;
-	char type;
-	bool moved;
-	Piece(char color, char type, bool moved);
-};
 struct Move{
 	int startPos;
 	int endPos;
 };
 class Game{
-	std::unique_ptr<Piece> gameBoard[64];
-	char activeColor;
+	char gameBoard[64]={};
+	bool whiteMove;
 	string castlingAvailability;
 	string ep;
 	int halfmove;

@@ -7,9 +7,8 @@ using std::stringstream;
 using std::cout;
 using std::endl;
 using std::vector;
-Piece::Piece(char color, char type, bool moved):color{color}, type{type}, moved{moved}{}
 Game::Game(){}
-int getPos(int current, int vertical, int horizontal){
+int getPos(int current, int vertical, int horizontal){ //calculates vertical, horizontal movements in array
 	int file=current%8;
 	int rank=current/8;
 	rank-=vertical;
@@ -18,7 +17,7 @@ int getPos(int current, int vertical, int horizontal){
 	else return(rank*8+file);
 }
 bool Game::matchColor(int pos){ //helper function, return if color of piece on given square matches active color
-	return(gameBoard[pos]->color==activeColor);
+	return((isupper(gameBoard[pos]) && whiteMove) || !(isupper(gameBoard[pos]) || whiteMove)); //disgusting logic because isupper is just nonzero and not 1
 	//return false;
 }
 bool Game::slideMove(int newPos){
@@ -44,19 +43,20 @@ void Game::loadFEN(const string &FEN){
 		for(int k=0;k<8;++k){ //square k of rank i (from top of board)
 			if(isdigit(*it)) k+=(*it-'0')-1; //if FEN is a digit, skip that many squares, char to digit conversion
 			else{
-				char color='b'; //color 1 is black, color 0 is white
-				if(isupper(*it)) color='w';
-				gameBoard[k+8*i]=make_unique<Piece>(color, tolower(*it), false);
+				gameBoard[k+8*i]=*it;
 			}
 			++it;
 		}
 		++it;
 	}
-	s >> activeColor >> castlingAvailability >> ep >> halfmove >> fullmove;
+	char sc;
+	s >> sc >> castlingAvailability >> ep >> halfmove >> fullmove;
+	if(sc=='w') whiteMove=true;
+	else whiteMove=false;
 }
 void Game::printBoard(){ //currently, run through all board positions and print them. add uppercase indication
-	for(auto &i:gameBoard){
-		if(i) cout << i->type << " ";
+	for(char i:gameBoard){
+		if(i) cout << i << " ";
 		else cout << 'X' << " ";
 	}
 }
@@ -65,11 +65,11 @@ vector<Move> Game::calculateMoves(){
 	int newPos;
 	int vdir;
 	for(int i=0;i<64;++i){
-		auto &curpiece=gameBoard[i];
-		if(curpiece && curpiece->color==activeColor){ //if a piece exists and is of the active color
-			if(curpiece->type=='p'){ //current piece is a pawn
-				if(curpiece->color=='w') vdir=1; else vdir=-1;
-				if(!curpiece->moved){
+		char curpiece=gameBoard[i];
+		if(curpiece && matchColor(i)){ //if a piece exists and is of the active color
+			if(tolower(curpiece)=='p'){ //current piece is a pawn
+				if(curpiece=='P') vdir=1; else vdir=-1;
+				if((vdir==1 && i/8==6) || (vdir==-1 && i/8==1)){ //if white pawn and in rank 2 or black pawn in rank 7
 					newPos=getPos(i, vdir*2, 0);
 					if(slideMove(newPos)){
 						moveList.push_back(Move{i, newPos}); //add move to list
@@ -81,7 +81,7 @@ vector<Move> Game::calculateMoves(){
 				}
 			}
 			
-			else if(curpiece->type=='r'){ //current piece is a rook
+			else if(tolower(curpiece)=='r'){ //current piece is a rook
 				int yincr=1;
 				int xincr=0;
 				for(int rm=0;rm<4;++rm){ //4 different directions, add moves until invalid or capture a piece
@@ -99,7 +99,7 @@ vector<Move> Game::calculateMoves(){
 				}
 			}
 			
-			else if(curpiece->type=='b'){ //current piece is a bishop
+			else if(tolower(curpiece)=='b'){ //current piece is a bishop
 				int yincr=1;
 				int xincr=1;
 				for(int bm=0;bm<4;++bm){
@@ -116,7 +116,7 @@ vector<Move> Game::calculateMoves(){
 					bishopendloop:;
 				}
 			}
-			else if(curpiece->type=='q'){ //current piece is a queen
+			else if(tolower(curpiece)=='q'){ //current piece is a queen
 				int yincr=1;
 				int xincr=0;
 				for(int qm=0;qm<8;++qm){ //8 different moves
@@ -137,7 +137,7 @@ vector<Move> Game::calculateMoves(){
 					queenendloop:;
 				}
 			}
-			else if(curpiece->type=='n'){
+			else if(tolower(curpiece)=='n'){ //current piece is a knight
 				int yincr=2;
 				int xincr=1;
 				for(int nm=0;nm<8;++nm){
