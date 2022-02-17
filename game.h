@@ -23,6 +23,7 @@ class Game{
 	bool matchColor(int pos);
 	bool slideMove(int newPos);
 	bool captureMove(int newPos);
+	//bool inCheck();
 	public:
 	Game();
 	void loadFEN(const string &FEN);

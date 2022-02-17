@@ -27,6 +27,14 @@ bool Game::slideMove(int newPos){
 bool Game::captureMove(int newPos){
 	return(newPos!=-1 && (!gameBoard[newPos] || !matchColor(newPos)));
 }
+/*bool Game::inCheck(){
+	for(int i=0;i<64;++i){
+		if(gameBoard[i] && gameBoard[i]->type=='k' && matchColor(i)){ //idenfity king of active color
+			
+		}
+	}
+	return false;
+}*/
 void Game::loadFEN(const string &FEN){
 	stringstream s(FEN);
 	string bp; //boardpositions
@@ -54,13 +62,13 @@ void Game::printBoard(){ //currently, run through all board positions and print 
 }
 vector<Move> Game::calculateMoves(){
 	vector<Move> moveList;
-	int vdir;
 	int newPos;
+	int vdir;
 	for(int i=0;i<64;++i){
 		auto &curpiece=gameBoard[i];
 		if(curpiece && curpiece->color==activeColor){ //if a piece exists and is of the active color
-			if(curpiece->color=='w') vdir=1; else vdir=-1;
 			if(curpiece->type=='p'){ //current piece is a pawn
+				if(curpiece->color=='w') vdir=1; else vdir=-1;
 				if(!curpiece->moved){
 					newPos=getPos(i, vdir*2, 0);
 					if(slideMove(newPos)){
@@ -89,16 +97,15 @@ vector<Move> Game::calculateMoves(){
 					}
 					rookendloop:;
 				}
-				
 			}
 			
 			else if(curpiece->type=='b'){ //current piece is a bishop
 				int yincr=1;
 				int xincr=1;
-				for(int rm=0;rm<4;++rm){
-					if(rm==1) yincr=-1;
-					else if(rm==2) xincr=-1;
-					else if(rm==3) yincr=1;
+				for(int bm=0;bm<4;++bm){
+					if(bm==1) yincr=-1;
+					else if(bm==2) xincr=-1;
+					else if(bm==3) yincr=1;
 					newPos=i;
 					while(true){
 						newPos=getPos(newPos, yincr, xincr);
@@ -108,19 +115,57 @@ vector<Move> Game::calculateMoves(){
 					}
 					bishopendloop:;
 				}
-				
+			}
+			else if(curpiece->type=='q'){ //current piece is a queen
+				int yincr=1;
+				int xincr=0;
+				for(int qm=0;qm<8;++qm){ //8 different moves
+					if(qm==1) xincr=-1;
+					else if(qm==2) xincr=1;
+					else if(qm==3) yincr=-1;
+					else if(qm==4) xincr=0;
+					else if(qm==5) xincr=-1;
+					else if(qm==6) yincr=0;
+					else if(qm==7) xincr=1;
+					newPos=i;
+					while(true){
+						newPos=getPos(newPos, yincr, xincr);
+						if(!captureMove(newPos)) goto queenendloop;
+						else if(gameBoard[newPos]){moveList.push_back(Move{i, newPos});goto queenendloop;}
+						moveList.push_back(Move{i, newPos});
+					}
+					queenendloop:;
+				}
+			}
+			else if(curpiece->type=='n'){
+				int yincr=2;
+				int xincr=1;
+				for(int nm=0;nm<8;++nm){
+					if(nm==1) yincr=-2;
+					else if(nm==2) xincr=-1;
+					else if(nm==3) yincr=2;
+					else if(nm==4){yincr=1;xincr=2;}
+					else if(nm==5) yincr=-1;
+					else if(nm==6) xincr=-2;
+					else if(nm==7) yincr=1;
+					newPos=getPos(i, yincr, xincr);
+					if(captureMove(newPos)){
+						moveList.push_back(Move{i, newPos});
+					}
+				}
 			}
 			
 		}
 	}
+	//see if in check
 	return moveList;
 }
 int main(){
 	Game g;
 	g.loadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 	vector<Move> openingMoves=g.calculateMoves();
-	for(auto i:openingMoves){
+	for(auto i:openingMoves){ //printing out all opening moves
 		cout << i.startPos << " " << i.endPos << endl;
 	}
-	g.printBoard();
+	g.printBoard(); //printing out the state of the board
 }
